@@ -112,14 +112,38 @@ _NFT_KEYWORDS = frozenset(
 )
 
 
+# nft's scanner reads a name as one `string` token: a letter, `_` or `.`, then
+# letters, digits, `_`, `.`, `-` or `/` (a lone `.` is its own token), and
+# the kernel takes 255 bytes at most. A name renders bare, so anything else —
+# a line break or a brace above all — rendered more objects or statements.
+_NFT_IDENTIFIER = re.compile(r"(?!\.\Z)[A-Za-z_.][A-Za-z0-9_./-]{0,254}")
+_IDENTIFIER_RULE = (
+    "letters, digits, `_`, `.`, `-` and `/`, starting with a letter, `_` or "
+    "`.`, 255 at most"
+)
+# after `@` nft reads `ll` and `nh` as header keywords (`@ll,0,8`), and
+# `flow add @` takes no `last`: names a rule references with `@` avoid them
+_AT_KEYWORDS = {
+    "set": frozenset({"ll", "nh"}),
+    "map": frozenset({"ll", "nh"}),
+    "flowtable": frozenset({"ll", "nh", "last"}),
+}
+
+
 def check_nft_name(name, kind: str) -> None:
-    """Reject a reserved nftables keyword used as an object name (§strict
+    """An object name (`kind`: table, chain, set, map, counter, flowtable)
+    must be an nft identifier that is not a reserved keyword (§strict
     authoring surface: fail early with a clear message instead of leaking a
-    cryptic nft parse error at deploy time)."""
+    cryptic nft parse error at deploy time, or rendering what the text
+    smuggled in)."""
     if not isinstance(name, str) or not name:
         # a list or mapping here crashed the keyword lookup (unhashable)
         raise BuildError(f"{kind} name must be text, got {name!r}")
-    if name in _NFT_KEYWORDS:
+    if not _NFT_IDENTIFIER.fullmatch(name):
+        raise BuildError(
+            f"{kind} name {name!r} is not an nft identifier — use {_IDENTIFIER_RULE}"
+        )
+    if name in _NFT_KEYWORDS or name in _AT_KEYWORDS.get(kind, ()):
         raise BuildError(
             f"{kind} name {name!r} is a reserved nftables keyword — rename it "
             f"(it would render to a ruleset nft can't parse)"

@@ -47,10 +47,10 @@ def test_concat_iif_oif_index_vmap():
     rule = {
         "vmap": {
             "key": ["iif", "oif"],
-            "map": [{"match": ["lan0", "wan0"], "jump": "fwd"}],
+            "map": [{"match": ["lan0", "wan0"], "jump": "lan_wan"}],
         }
     }
-    assert rd.render(rule) == ['iif . oif vmap { "lan0" . "wan0" : jump fwd }']
+    assert rd.render(rule) == ['iif . oif vmap { "lan0" . "wan0" : jump lan_wan }']
 
 
 def test_iif_vmap_unknown_group_errors():

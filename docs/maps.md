@@ -136,6 +136,6 @@ groups expand** and cartesian-product into elements:
 
 ## Gotcha (found while verifying)
 
-Don't name a set/map after an **nft keyword** (`fwd`, `last`, …) — it breaks the
+Don't name a set/map after an **nft keyword** (`fwd`, `ll`, …) — it breaks the
 parse with a confusing error. nftgen rejects keyword names at build
 (`check_nft_name`, a `BuildError`).

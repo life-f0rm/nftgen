@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -149,17 +150,20 @@ def test_own_tables_one_destroy_per_distinct_table():
     assert destroys == ["destroy table inet filter", "destroy table ip nat"]
 
 
-def test_own_tables_dedupes_on_the_rendered_name():
-    # `name: 1` and `name: "1"` render the same table; an unhashable name
-    # renders (nft -c rejects it) instead of crashing
-    tables = [
-        {"family": "inet", "name": 1, "chains": [{"name": "a"}]},
-        {"family": "inet", "name": "1", "chains": [{"name": "b"}]},
-        {"family": "inet", "name": ["x"], "chains": [{"name": "c"}]},
-    ]
-    text = render_tables(tables, Definitions(), DictResolver({}), reset="own-tables")
-    destroys = [ln for ln in text.splitlines() if ln.startswith("destroy table")]
-    assert destroys == ["destroy table inet 1", "destroy table inet ['x']"]
+@pytest.mark.parametrize(
+    ("name", "error"),
+    [
+        (1, "table name must be text, got 1"),
+        (["x"], "table name must be text, got ['x']"),
+        ("1", "table name '1' is not an nft identifier"),
+    ],
+)
+def test_own_tables_names_are_identifiers(name, error):
+    # `name: 1` rendered `destroy table inet 1`, and a list rendered its repr;
+    # nft takes neither, so the build fails naming the table
+    tables = [{"family": "inet", "name": name, "chains": [{"name": "a"}]}]
+    with pytest.raises(BuildError, match=re.escape(error)):
+        render_tables(tables, Definitions(), DictResolver({}), reset="own-tables")
 
 
 def test_generate_deploy_adds_the_reset():

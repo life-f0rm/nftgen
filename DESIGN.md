@@ -137,6 +137,13 @@ interfaces:
 | `raw` | object declarations copied into the table verbatim, one line or a list |
 | `comment` | nft `comment "…"` on the table |
 
+**Names.** A table, set, map, chain, counter or flowtable name, and a
+`jump:` / `goto:` target, renders bare, so it is an nft identifier: letters,
+digits, `_`, `.`, `-` and `/`, starting with a letter, `_` or `.` (not `.`
+alone), 255 at most, and not a reserved nft keyword. A set, map or flowtable
+is not named `ll` or `nh`, and a flowtable not `last`: a rule refers to them
+with `@`, where nft reads those as keywords.
+
 ## Sets
 
 A definition becomes a **named set** only when listed in a table's `sets:`;
@@ -205,7 +212,7 @@ A set and a map can't share a name. Verdict maps are still inline (`vmap:`).
 
 | Key | Meaning |
 | --- | --- |
-| `name` | required; not a reserved nft keyword |
+| `name` | required; an nft identifier (see Names under Tables) |
 | `hook` | makes it a base chain: `prerouting`, `input`, `forward`, `output`, `postrouting` in `ip`, `ip6`, `inet` and `bridge`, and `ingress` in `inet`; `input`, `output` in `arp`; `ingress`, `egress` in `netdev` |
 | `type` | `filter` (default, every hook), `nat` (`prerouting`, `input`, `output`, `postrouting`), `route` (`output`) — `nat` and `route` in `ip`, `ip6` and `inet` only; base chains only |
 | `priority` | a number or `raw`, `mangle`, `dstnat`, `filter` (0, default), `security`, `srcnat` — base chains only |
@@ -383,7 +390,11 @@ rule order. An empty chain stays empty.
   in it).
 - A named set mixing v4 and v6; a rule whose addresses share no family; a
   NAT rule whose addresses include the other family than its target.
-- Object names that are reserved nft keywords (`counter`, `fwd`, `map`, …).
+- An object name (table, set, map, chain, counter, flowtable) or a
+  `jump:` / `goto:` target that is not an nft identifier (see Names under
+  Tables) or is a reserved nft keyword (`counter`, `fwd`, `map`, …). Each
+  renders bare, so a line break or a brace in one rendered more tables,
+  chains or statements, and `jump c; accept` a rule accepting everything.
 - `flow-offload:` and an action in one rule (the verdict would never run).
 - `set-mark:` and `set-ct-mark:` in one rule when one copies the other
   (`ct-mark` / `mark`): the result would depend on their order.

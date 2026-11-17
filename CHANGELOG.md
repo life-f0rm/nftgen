@@ -19,6 +19,16 @@ not a breaking change.
   (`egress` in `netdev` only, `ingress` in `netdev` or `inet`), `nat` and
   `route` go in `ip`, `ip6` and `inet` only and on their hooks (`route` on
   `output`), and `policy:` is `accept` or `drop`.
+- Fix: a table, set, map, chain, counter or flowtable name, and a `jump:` /
+  `goto:` target, must be an nft identifier, or the build fails naming the
+  object: letters, digits, `_`, `.`, `-` and `/`, starting with a letter,
+  `_` or `.`, 255 at most. Only reserved keywords were checked (table names
+  not at all), and a name renders bare, so a table name
+  `"t { }\ntable inet u"` rendered a second table and nft loaded it, and
+  `jump: "c; accept"` rendered a rule accepting everything. A set, map or
+  flowtable named `ll` or `nh`, or a flowtable named `last`, fails too: nft
+  reads those as keywords after `@`. A table `name: 1` rendered
+  `table inet 1`, which nft refuses; it now fails as not text.
 
 ## 1.4.0 — 2026-11-15
 

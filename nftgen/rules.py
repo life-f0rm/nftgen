@@ -451,7 +451,9 @@ class RuleRenderer:
             out.append(f"tcp flags syn tcp option maxseg size set {target}")
         if "flow-offload" in rule:
             name = rule["flow-offload"]
-            if self.flowtables is not None and name not in self.flowtables:
+            if self.flowtables is None:
+                check_nft_name(name, "flowtable")
+            elif name not in self.flowtables:
                 # nft would say only "Could not process rule: No such file or
                 # directory", pointing at the generated file
                 declared = ", ".join(sorted(self.flowtables)) or "none"
@@ -1080,7 +1082,7 @@ class RuleRenderer:
         if isinstance(value, dict) and len(value) == 1:
             ((kind, target),) = value.items()
             if kind in ("jump", "goto") and isinstance(target, str) and target:
-                return f"{kind} {target}"
+                return _jump(kind, target)
         raise BuildError(
             f"vmap verdict must be one of {', '.join(self._VMAP_VERDICTS)}, or "
             f"`jump:`/`goto:` a chain, got {value!r}"
@@ -1090,7 +1092,7 @@ class RuleRenderer:
         if isinstance(action, dict):
             ((kind, target),) = action.items()
             if kind in ("jump", "goto"):
-                return f"{kind} {target}"
+                return _jump(kind, target)
             if kind in ("dnat", "snat"):
                 if isinstance(target, dict) and isinstance(target.get("map"), str):
                     return self._nat_named_map(kind, target)
@@ -1329,6 +1331,13 @@ def _note_suffix(note) -> str:
     if not isinstance(note, str) or "\n" in note or "\r" in note:
         raise BuildError(f"rule note must be single-line text, got {note!r}")
     return f"  # {note}"
+
+
+def _jump(kind: str, target) -> str:
+    # the target may be a chain the table's `raw:` declares, so it is not
+    # looked up; it renders bare, like the chain's own name
+    check_nft_name(target, f"`{kind}:` chain")
+    return f"{kind} {target}"
 
 
 def _one_of(value, allowed: tuple, what: str):

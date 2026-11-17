@@ -156,6 +156,7 @@ def _check_table(tspec, where: str) -> None:
         )
     if "family" not in tspec or "name" not in tspec:
         raise BuildError(f"{where}a table needs `family:` and `name:`: {tspec!r}")
+    check_nft_name(tspec["name"], f"{where}table")
     if not isinstance(tspec["family"], str) or tspec["family"] not in CHAIN_HOOKS:
         raise BuildError(
             f"{where}table {tspec['name']!r}: `family:` must be one of "
